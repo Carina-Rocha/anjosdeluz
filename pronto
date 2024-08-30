@@ -1,0 +1,222 @@
+import tkinter as tk
+from tkinter import messagebox
+import datetime
+import json
+
+# Classe Voluntário
+class Voluntario:
+    def __init__(self, nome, telefone, email, area_atuacao):
+        self.nome = nome
+        self.telefone = telefone
+        self.email = email
+        self.area_atuacao = area_atuacao
+
+    def to_dict(self):
+        return {
+            "nome": self.nome,
+            "telefone": self.telefone,
+            "email": self.email,
+            "area_atuacao": self.area_atuacao
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["nome"], data["telefone"], data["email"], data["area_atuacao"])
+
+    def __repr__(self):
+        return f"Nome: {self.nome}, Telefone: {self.telefone}, Email: {self.email}, Área de Atuação: {self.area_atuacao}"
+
+
+# Classe Doação
+class Doacao:
+    def __init__(self, doador, data, tipo, valor):
+        self.doador = doador
+        self.data = data
+        self.tipo = tipo
+        self.valor = valor
+
+    def to_dict(self):
+        return {
+            "doador": self.doador,
+            "data": self.data,
+            "tipo": self.tipo,
+            "valor": self.valor
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["doador"], data["data"], data["tipo"], data["valor"])
+
+    def __repr__(self):
+        return f"Doador: {self.doador}, Data: {self.data}, Tipo: {self.tipo}, Valor: {self.valor}"
+
+
+# Sistema de Gerenciamento
+class SistemaGerenciamento:
+    def __init__(self):
+        self.voluntarios = []
+        self.doacoes = []
+        self.carregar_dados()
+
+    def salvar_dados(self):
+        with open('voluntarios.json', 'w') as file:
+            json.dump([voluntario.to_dict() for voluntario in self.voluntarios], file)
+
+        with open('doacoes.json', 'w') as file:
+            json.dump([doacao.to_dict() for doacao in self.doacoes], file)
+
+    def carregar_dados(self):
+        try:
+            with open('voluntarios.json', 'r') as file:
+                self.voluntarios = [Voluntario.from_dict(data) for data in json.load(file)]
+        except FileNotFoundError:
+            self.voluntarios = []
+
+        try:
+            with open('doacoes.json', 'r') as file:
+                self.doacoes = [Doacao.from_dict(data) for data in json.load(file)]
+        except FileNotFoundError:
+            self.doacoes = []
+
+    def registrar_voluntario(self, nome, telefone, email, area_atuacao):
+        voluntario = Voluntario(nome, telefone, email, area_atuacao)
+        self.voluntarios.append(voluntario)
+        self.salvar_dados()
+        return f"Voluntário {nome} registrado com sucesso!"
+
+    def alocar_tarefa(self, voluntario_nome, tarefa):
+        for voluntario in self.voluntarios:
+            if voluntario.nome == voluntario_nome:
+                return f"Tarefa '{tarefa}' alocada para {voluntario_nome}."
+        return f"Voluntário {voluntario_nome} não encontrado!"
+
+    def registrar_doacao(self, doador, tipo, valor):
+        data = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        doacao = Doacao(doador, data, tipo, valor)
+        self.doacoes.append(doacao)
+        self.salvar_dados()
+        return f"Doação registrada com sucesso de {doador}!"
+
+    def gerar_relatorio_voluntarios(self):
+        return "\n".join(str(voluntario) for voluntario in self.voluntarios)
+
+    def gerar_relatorio_doacoes(self):
+        return "\n".join(str(doacao) for doacao in self.doacoes)
+
+
+# Funções para a Interface Gráfica
+def registrar_voluntario():
+    nome = entry_nome.get()
+    telefone = entry_telefone.get()
+    email = entry_email.get()
+    area_atuacao = entry_area_atuacao.get()
+    
+    if nome and telefone and email and area_atuacao:
+        mensagem = sistema.registrar_voluntario(nome, telefone, email, area_atuacao)
+        messagebox.showinfo("Sucesso", mensagem)
+    else:
+        messagebox.showwarning("Erro", "Por favor, preencha todos os campos.")
+
+def alocar_tarefa():
+    voluntario_nome = entry_voluntario_nome.get()
+    tarefa = entry_tarefa.get()
+
+    if voluntario_nome and tarefa:
+        mensagem = sistema.alocar_tarefa(voluntario_nome, tarefa)
+        messagebox.showinfo("Informação", mensagem)
+    else:
+        messagebox.showwarning("Erro", "Por favor, preencha todos os campos.")
+
+def registrar_doacao():
+    doador = entry_doador.get()
+    tipo = entry_tipo.get()
+    valor = entry_valor.get()
+
+    if doador and tipo and valor:
+        try:
+            valor = float(valor)
+            mensagem = sistema.registrar_doacao(doador, tipo, valor)
+            messagebox.showinfo("Sucesso", mensagem)
+        except ValueError:
+            messagebox.showwarning("Erro", "Por favor, insira um valor válido.")
+    else:
+        messagebox.showwarning("Erro", "Por favor, preencha todos os campos.")
+
+def gerar_relatorio_voluntarios():
+    relatorio = sistema.gerar_relatorio_voluntarios()
+    messagebox.showinfo("Relatório de Voluntários", relatorio)
+
+def gerar_relatorio_doacoes():
+    relatorio = sistema.gerar_relatorio_doacoes()
+    messagebox.showinfo("Relatório de Doações", relatorio)
+
+
+# Criação da Janela Principal
+sistema = SistemaGerenciamento()
+
+root = tk.Tk()
+root.title("Sistema de Gerenciamento - ONG Anjos de Luz")
+
+# Aba 1: Registro de Voluntários
+frame_voluntarios = tk.LabelFrame(root, text="Registrar Voluntário")
+frame_voluntarios.grid(row=0, column=0, padx=10, pady=10)
+
+tk.Label(frame_voluntarios, text="Nome:").grid(row=0, column=0, sticky="e")
+tk.Label(frame_voluntarios, text="Telefone:").grid(row=1, column=0, sticky="e")
+tk.Label(frame_voluntarios, text="Email:").grid(row=2, column=0, sticky="e")
+tk.Label(frame_voluntarios, text="Área de Atuação:").grid(row=3, column=0, sticky="e")
+
+entry_nome = tk.Entry(frame_voluntarios)
+entry_telefone = tk.Entry(frame_voluntarios)
+entry_email = tk.Entry(frame_voluntarios)
+entry_area_atuacao = tk.Entry(frame_voluntarios)
+
+entry_nome.grid(row=0, column=1)
+entry_telefone.grid(row=1, column=1)
+entry_email.grid(row=2, column=1)
+entry_area_atuacao.grid(row=3, column=1)
+
+tk.Button(frame_voluntarios, text="Registrar", command=registrar_voluntario).grid(row=4, columnspan=2, pady=5)
+
+# Aba 2: Alocação de Tarefas
+frame_tarefas = tk.LabelFrame(root, text="Alocar Tarefa")
+frame_tarefas.grid(row=0, column=1, padx=10, pady=10)
+
+tk.Label(frame_tarefas, text="Nome do Voluntário:").grid(row=0, column=0, sticky="e")
+tk.Label(frame_tarefas, text="Tarefa:").grid(row=1, column=0, sticky="e")
+
+entry_voluntario_nome = tk.Entry(frame_tarefas)
+entry_tarefa = tk.Entry(frame_tarefas)
+
+entry_voluntario_nome.grid(row=0, column=1)
+entry_tarefa.grid(row=1, column=1)
+
+tk.Button(frame_tarefas, text="Alocar", command=alocar_tarefa).grid(row=2, columnspan=2, pady=5)
+
+# Aba 3: Registro de Doações
+frame_doacoes = tk.LabelFrame(root, text="Registrar Doação")
+frame_doacoes.grid(row=1, column=0, padx=10, pady=10)
+
+tk.Label(frame_doacoes, text="Doador:").grid(row=0, column=0, sticky="e")
+tk.Label(frame_doacoes, text="Tipo:").grid(row=1, column=0, sticky="e")
+tk.Label(frame_doacoes, text="Valor:").grid(row=2, column=0, sticky="e")
+
+entry_doador = tk.Entry(frame_doacoes)
+entry_tipo = tk.Entry(frame_doacoes)
+entry_valor = tk.Entry(frame_doacoes)
+
+entry_doador.grid(row=0, column=1)
+entry_tipo.grid(row=1, column=1)
+entry_valor.grid(row=2, column=1)
+
+tk.Button(frame_doacoes, text="Registrar", command=registrar_doacao).grid(row=3, columnspan=2, pady=5)
+
+# Aba 4: Geração de Relatórios
+frame_relatorios = tk.LabelFrame(root, text="Gerar Relatórios")
+frame_relatorios.grid(row=1, column=1, padx=10, pady=10)
+
+tk.Button(frame_relatorios, text="Relatório de Voluntários", command=gerar_relatorio_voluntarios).grid(row=0, column=0, pady=5)
+tk.Button(frame_relatorios, text="Relatório de Doações", command=gerar_relatorio_doacoes).grid(row=1, column=0, pady=5)
+
+# Execução do loop principal da interface gráfica
+root.mainloop()
